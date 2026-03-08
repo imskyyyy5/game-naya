@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meteor Dodger</title>
+<style>
+  body { margin: 0; background: #000; overflow: hidden; font-family: Arial; color: #fff;}
+  canvas { display: block; margin: auto; border: 3px solid #fff;}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+</head>
+<body>
+<script>
+let ship;
+let meteors = [];
+let score = 0;
+let speed = 5;
+let gameState = "start"; // start, play, gameover
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  ship = new Ship();
+  textAlign(CENTER, CENTER);
+}
+
+function draw() {
+  background(0);
+
+  if(gameState === "start") {
+    fill(255);
+    textSize(100);
+    text("METEOR DODGER", width/2, height/2 - 100);
+    textSize(50);
+    text("Press SPACE to Start", width/2, height/2 + 50);
+    return;
+  }
+
+  if(gameState === "play") {
+    // Update score
+    score += 1;
+    fill(255);
+    textSize(40);
+    text("Score: " + score, width/2, 50);
+
+    // Update ship
+    ship.show();
+    ship.move();
+
+    // Spawn meteors
+    if(frameCount % 40 === 0) {
+      meteors.push(new Meteor());
+    }
+
+    // Update meteors
+    for(let i=meteors.length-1;i>=0;i--){
+      meteors[i].show();
+      meteors[i].update();
+
+      if(meteors[i].hits(ship)){
+        gameState = "gameover";
+      } else if(meteors[i].offscreen()){
+        meteors.splice(i,1);
+      }
+    }
+
+    // Instructions
+    fill(255,150);
+    textSize(32);
+    text("Use LEFT/RIGHT arrows to dodge meteors", width/2, height - 40);
+
+  } else if(gameState === "gameover") {
+    fill(255,0,0);
+    textSize(100);
+    text("GAME OVER!", width/2, height/2 - 100);
+    textSize(60);
+    text("Score: " + score, width/2, height/2);
+    textSize(50);
+    text("Press R to Restart", width/2, height/2 + 100);
+  }
+}
+
+function keyPressed(){
+  if(gameState==="start" && key===' '){
+    gameState="play";
+  }
+  if(gameState==="gameover" && (key==='r'||key==='R')){
+    restartGame();
+  }
+}
+
+function restartGame(){
+  score=0;
+  meteors=[];
+  speed=5;
+  ship = new Ship();
+  gameState="start";
+}
+
+// Ship
+class Ship{
+  constructor(){
+    this.width = 80;
+    this.height = 40;
+    this.x = width/2 - this.width/2;
+    this.y = height - this.height - 50;
+    this.speed = 15;
+  }
+  show(){
+    fill(0,200,255);
+    triangle(this.x,this.y+this.height,this.x+this.width/2,this.y,this.x+this.width,this.y+this.height);
+  }
+  move(){
+    if(keyIsDown(LEFT_ARROW)) this.x -= this.speed;
+    if(keyIsDown(RIGHT_ARROW)) this.x += this.speed;
+    this.x = constrain(this.x,0,width-this.width);
+  }
+}
+
+// Meteor
+class Meteor{
+  constructor(){
+    this.r = random(30,80);
+    this.x = random(this.r, width - this.r);
+    this.y = -this.r;
+    this.speed = random(speed, speed+3);
+    this.color = [random(100,255), random(50,200), random(0,50)];
+  }
+  show(){
+    fill(...this.color);
+    ellipse(this.x,this.y,this.r);
+  }
+  update(){
+    this.y += this.speed;
+  }
+  offscreen(){
+    return this.y - this.r > height;
+  }
+  hits(ship){
+    let halfW = ship.width/2;
+    let halfH = ship.height/2;
+    let shipX = ship.x + halfW;
+    let shipY = ship.y + halfH;
+    let d = dist(this.x,this.y,shipX,shipY);
+    return d < this.r + max(halfW,halfH);
+  }
+}
+
+function windowResized(){
+  resizeCanvas(windowWidth,windowHeight);
+  ship.y = height - ship.height - 50;
+}
+</script>
+</body>
+</html>
